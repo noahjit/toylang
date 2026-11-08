@@ -26,6 +26,11 @@ Token Lexer::next_token() {
 		case '/': return make_token(TokenType::Slash);
 		case '{': return make_token(TokenType::LeftBrace);
 		case '}': return make_token(TokenType::RightBrace);
+
+		case '!': return make_token(match('=') ? TokenType::BangEqual : TokenType::Bang);
+		case '=': return make_token(match('=') ? TokenType::EqualEqual : TokenType::Equal);
+		case '>': return make_token(match('=') ? TokenType::GreaterEqual : TokenType::Greater);
+		case '<': return make_token(match('=') ? TokenType::LessEqual : TokenType::Less);
 	}
 	return error_token("Unexpected character.");
 }
@@ -36,11 +41,16 @@ char Lexer::peek() const {
 }
 
 char Lexer::peek_next() const {
-
+	if (current + 1 >= _source.size()) return '\0';
+	return _source[current + 1];
 }
 
 bool Lexer::match(char c) {
+	if (is_at_end()) return false;
+	if (c != peek()) return false;
 
+	current++;
+	return true;
 }
 
 bool Lexer::is_at_end() const {
