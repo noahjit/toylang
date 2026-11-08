@@ -10,7 +10,31 @@ char Lexer::advance() {
 	return c;
 }
 
+void Lexer::skip_whitespace() {
+	for (;;) {
+		char c = peek();
+
+		switch (c) {
+			case ' ':
+			case '\t': 
+			case '\r': advance(); break;
+			case '\n': advance(); line_number++; break;
+			case '/': 
+				if (peek_next() == '/') {
+					while (peek() != '\n' && !is_at_end()) {
+						advance();
+					}
+				}
+				else
+					return;
+				break;
+			default: return;
+		}
+	}
+}
+
 Token Lexer::next_token() {
+	skip_whitespace();
 	start = current;
 	if (is_at_end()) return make_token(TokenType::EndOfFile);
 	char c = advance();

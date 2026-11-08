@@ -34,6 +34,7 @@ class Lexer {
 		bool is_at_end() const; // bool that checks if we at the end of token
 		Token make_token(TokenType type) const;
 		Token error_token(std::string_view message) const;
+		void skip_whitespace();
 
 		std::string _source;
 		int line_number = 1;

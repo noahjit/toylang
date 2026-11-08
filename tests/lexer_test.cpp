@@ -119,3 +119,51 @@ TEST(LexerTest, LexemesMatchSource2) {
 
     EXPECT_EQ(lexer.next_token()._type, TokenType::EndOfFile);
 }
+
+TEST(LexerTest, LeftParenSpaceRightParen) {
+    Lexer lexer("( )");
+
+    Token a = lexer.next_token();
+    EXPECT_EQ(a._type, TokenType::LeftParen);
+    EXPECT_EQ(a.lexeme, "(");
+
+    Token b = lexer.next_token();
+    EXPECT_EQ(b._type, TokenType::RightParen);
+    EXPECT_EQ(b.lexeme, ")");
+
+    EXPECT_EQ(lexer.next_token()._type, TokenType::EndOfFile);
+}
+
+TEST(LexerTest, SpaceOnly) {
+    Lexer lexer("  \t  ");
+
+    Token a = lexer.next_token();
+    EXPECT_EQ(a._type, TokenType::EndOfFile);
+    EXPECT_EQ(a.lexeme, "");
+
+    EXPECT_EQ(lexer.next_token()._type, TokenType::EndOfFile);
+}
+
+TEST(LexerTest, LineCounting) {
+    Lexer lexer("(\n)\n+");
+
+    Token a = lexer.next_token();
+    EXPECT_EQ(a._type, TokenType::LeftParen);
+    EXPECT_EQ(a.lexeme, "(");
+    EXPECT_EQ(a.line_number, 1);
+
+    Token b = lexer.next_token();
+    EXPECT_EQ(b._type, TokenType::RightParen);
+    EXPECT_EQ(b.lexeme, ")");
+    EXPECT_EQ(b.line_number, 2);
+
+    Token c = lexer.next_token();
+    EXPECT_EQ(c._type, TokenType::Plus);
+    EXPECT_EQ(c.lexeme, "+");
+    EXPECT_EQ(c.line_number, 3);
+
+    EXPECT_EQ(lexer.next_token()._type, TokenType::EndOfFile);
+}
+
+
+// write comment tests
