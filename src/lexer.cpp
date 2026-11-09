@@ -10,6 +10,13 @@ char Lexer::advance() {
 	return c;
 }
 
+bool is_digit(char c) {
+	if (c >= '0' && c <= '9') {
+		return true;
+	}
+	return false;
+}
+
 void Lexer::skip_whitespace() {
 	for (;;) {
 		char c = peek();
@@ -33,11 +40,23 @@ void Lexer::skip_whitespace() {
 	}
 }
 
+Token Lexer::number() {
+	while (is_digit(peek())) advance();
+
+	if (peek() == '.' && is_digit(peek_next())) {
+		advance();
+		while (is_digit(peek())) advance();
+	}
+	return make_token(TokenType::Number);
+}
+
 Token Lexer::next_token() {
 	skip_whitespace();
 	start = current;
 	if (is_at_end()) return make_token(TokenType::EndOfFile);
 	char c = advance();
+
+	if (is_digit(c)) return number();
 
 	switch (c) {
 		case '(': return make_token(TokenType::LeftParen);

@@ -14,6 +14,21 @@ static std::vector<TokenType> types_of(const std::string& src) {
     return types;
 }
 
+struct Expected {
+    TokenType type;
+    std::string_view lexeme;
+};
+
+static void expect_tokens(const std::string& src, const std::vector<Expected>& expected) {
+    Lexer lexer(src);
+    for (std::size_t i = 0; i < expected.size(); ++i) {
+        Token t = lexer.next_token();
+        EXPECT_EQ(t._type, expected[i].type) << "token " << i << " of: " << src;
+        EXPECT_EQ(t.lexeme, expected[i].lexeme) << "token " << i << " of: " << src;
+    }
+    EXPECT_EQ(lexer.next_token()._type, TokenType::EndOfFile) << "extra tokens in: " << src;
+}
+
 TEST(LexerTest, LexemesMatchSource) {
     Lexer lexer("(+)");
 
@@ -165,5 +180,123 @@ TEST(LexerTest, LineCounting) {
     EXPECT_EQ(lexer.next_token()._type, TokenType::EndOfFile);
 }
 
+TEST(LexerTest, CommentedHello) {
+    Lexer lexer("// hello");
 
-// write comment tests
+    Token a = lexer.next_token();
+    EXPECT_EQ(a._type, TokenType::EndOfFile);
+    EXPECT_EQ(a.lexeme, "");
+
+    EXPECT_EQ(lexer.next_token()._type, TokenType::EndOfFile);
+}
+
+TEST(LexerTest, SingleSlash) {
+    Lexer lexer("/");
+
+    Token a = lexer.next_token();
+    EXPECT_EQ(a._type, TokenType::Slash);
+    EXPECT_EQ(a.lexeme, "/");
+
+    EXPECT_EQ(lexer.next_token()._type, TokenType::EndOfFile);
+}
+
+TEST(LexerTest, LineCountingWithComments) {
+    Lexer lexer("+ // note\n-");
+
+    Token a = lexer.next_token();
+    EXPECT_EQ(a._type, TokenType::Plus);
+    EXPECT_EQ(a.lexeme, "+");
+
+    Token b = lexer.next_token();
+    EXPECT_EQ(b._type, TokenType::Minus);
+    EXPECT_EQ(b.lexeme, "-");
+    EXPECT_EQ(b.line_number, 2);
+
+    EXPECT_EQ(lexer.next_token()._type, TokenType::EndOfFile);
+}
+
+TEST(LexerTest, SingleSlashCommentStart) {
+    Lexer lexer("/ /");
+
+    Token a = lexer.next_token();
+    EXPECT_EQ(a._type, TokenType::Slash);
+    EXPECT_EQ(a.lexeme, "/");
+
+    Token b = lexer.next_token();
+    EXPECT_EQ(b._type, TokenType::Slash);
+    EXPECT_EQ(b.lexeme, "/");
+
+    EXPECT_EQ(lexer.next_token()._type, TokenType::EndOfFile);
+}
+
+TEST(LexerTest, BackToBackComments) {
+    Lexer lexer("//a\n//b\n+");
+
+    Token a = lexer.next_token();
+    EXPECT_EQ(a._type, TokenType::Plus);
+    EXPECT_EQ(a.lexeme, "+");
+    EXPECT_EQ(a.line_number, 3);
+    
+    EXPECT_EQ(lexer.next_token()._type, TokenType::EndOfFile);
+}
+
+TEST(LexerNumbers, SingleDigit) {
+    expect_tokens("7", { { TokenType::Number, "7" } });
+}
+
+TEST(LexerNumbers, MultiDigitInteger) {
+    expect_tokens("123", { { TokenType::Number, "123" } });
+}
+
+TEST(LexerNumbers, LeadingZerosAccepted) {
+    expect_tokens("007", { { TokenType::Number, "007" } });
+}
+
+TEST(LexerNumbers, Decimal) {
+    expect_tokens("3.14", { { TokenType::Number, "3.14" } });
+}
+
+TEST(LexerNumbers, TrailingDotIsNotPartOfNumber) {
+    expect_tokens("3.", {
+        { TokenType::Number, "3" },
+        { TokenType::Error, "Unexpected character." },
+        });
+}
+
+TEST(LexerNumbers, LeadingDotIsNotANumber) {
+    expect_tokens(".5", {
+        { TokenType::Error, "Unexpected character." },
+        { TokenType::Number, "5" },
+        });
+}
+
+TEST(LexerNumbers, OnlyOneDecimalPoint) {
+    expect_tokens("1.5.5", {
+        { TokenType::Number, "1.5" },
+        { TokenType::Error, "Unexpected character." },
+        { TokenType::Number, "5" },
+        });
+}
+
+TEST(LexerNumbers, NumberFollowedByOperator) {
+    expect_tokens("12+3", {
+        { TokenType::Number, "12" },
+        { TokenType::Plus, "+" },
+        { TokenType::Number, "3" },
+        });
+}
+
+TEST(LexerNumbers, NumbersSeparatedBySpace) {
+    expect_tokens("1 22.5", {
+        { TokenType::Number, "1" },
+        { TokenType::Number, "22.5" },
+        });
+}
+
+TEST(LexerNumbers, DivisionIsNotAComment) {
+    expect_tokens("10/2", {
+        { TokenType::Number, "10" },
+        { TokenType::Slash, "/" },
+        { TokenType::Number, "2" },
+        });
+}

@@ -32,8 +32,9 @@ class Lexer {
 		char advance(); // consumes a character and returns it
 		bool match(char c); // consumes the next character only if it equals the expected one, and tells me wether it did hence bool
 		bool is_at_end() const; // bool that checks if we at the end of token
-		Token make_token(TokenType type) const;
+		[[nodiscard]] Token make_token(TokenType type) const;
 		Token error_token(std::string_view message) const;
+		Token number();
 		void skip_whitespace();
 
 		std::string _source;
