@@ -354,3 +354,85 @@ TEST(LexerStrings, NewlineInsideStringCountsLines) {
     EXPECT_EQ(p._type, TokenType::Plus);
     EXPECT_EQ(p.line_number, 2);
 }
+
+TEST(LexerIdentifiers, SimpleIdentifier) {
+    expect_tokens("foo", { { TokenType::Identifier, "foo" } });
+}
+
+TEST(LexerIdentifiers, UnderscoreAndDigits) {
+    expect_tokens("_tmp2 x1", {
+        { TokenType::Identifier, "_tmp2" },
+        { TokenType::Identifier, "x1" },
+        });
+}
+
+TEST(LexerIdentifiers, SingleLetter) {
+    expect_tokens("x", { { TokenType::Identifier, "x" } });
+}
+
+TEST(LexerKeywords, AllKeywords) {
+    expect_tokens("and or let fn if else while return print true false nil", {
+        { TokenType::And, "and" },{ TokenType::Or, "or" },
+        { TokenType::Let, "let" },{ TokenType::Fn, "fn" },
+        { TokenType::If, "if" },{ TokenType::Else, "else" },
+        { TokenType::While, "while" },{ TokenType::Return, "return" },
+        { TokenType::Print, "print" },{ TokenType::True, "true" },
+        { TokenType::False, "false" },{ TokenType::Nil, "nil" },
+        });
+}
+
+TEST(LexerKeywords, KeywordPrefixIsIdentifier) {
+    expect_tokens("letter", { { TokenType::Identifier, "letter" } });
+}
+
+TEST(LexerKeywords, KeywordSuffixIsIdentifier) {
+    expect_tokens("xlet iff", {
+        { TokenType::Identifier, "xlet" },
+        { TokenType::Identifier, "iff" },
+        });
+}
+
+TEST(LexerKeywords, KeywordsAreCaseSensitive) {
+    expect_tokens("Let LET", {
+        { TokenType::Identifier, "Let" },
+        { TokenType::Identifier, "LET" },
+        });
+}
+
+TEST(LexerKeywords, IdentifierCannotStartWithDigit) {
+    expect_tokens("1abc", {
+        { TokenType::Number, "1" },
+        { TokenType::Identifier, "abc" },
+        });
+}
+
+TEST(LexerIntegration, LetStatement) {
+    expect_tokens("let x = 3 + 4;", {
+        { TokenType::Let, "let" },
+        { TokenType::Identifier, "x" },
+        { TokenType::Equal, "=" },
+        { TokenType::Number, "3" },
+        { TokenType::Plus, "+" },
+        { TokenType::Number, "4" },
+        { TokenType::Semicolon, ";" },
+        });
+}
+
+TEST(LexerIntegration, FunctionWithComment) {
+    expect_tokens("fn add(a, b) { // sum\n return a + b; }", {
+        { TokenType::Fn, "fn" },
+        { TokenType::Identifier, "add" },
+        { TokenType::LeftParen, "(" },
+        { TokenType::Identifier, "a" },
+        { TokenType::Comma, "," },
+        { TokenType::Identifier, "b" },
+        { TokenType::RightParen, ")" },
+        { TokenType::LeftBrace, "{" },
+        { TokenType::Return, "return" },
+        { TokenType::Identifier, "a" },
+        { TokenType::Plus, "+" },
+        { TokenType::Identifier, "b" },
+        { TokenType::Semicolon, ";" },
+        { TokenType::RightBrace, "}" },
+        });
+}

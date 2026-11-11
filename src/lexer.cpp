@@ -1,8 +1,24 @@
 #include "lexer.h"
 
 #include <utility>
+#include <unordered_map>
+#include <iostream>
 
 Lexer::Lexer(std::string source) : _source(std::move(source)) {}
+
+TokenType Lexer::identifier_type() const {
+	static const std::unordered_map<std::string_view, TokenType> keywords = {
+		{ "and", TokenType::And },{ "or", TokenType::Or },{ "let", TokenType::Let },
+		{ "fn", TokenType::Fn },{ "if", TokenType::If },{ "else", TokenType::Else },
+		{ "while", TokenType::While },{ "return", TokenType::Return },{ "print", TokenType::Print },
+		{ "true", TokenType::True },{ "false", TokenType::False },{ "nil", TokenType::Nil }
+	};
+	std::string_view sv(_source.data() + start, current - start);
+	auto it = keywords.find(sv);
+
+	if (it != keywords.end()) return it->second;
+	return TokenType::Identifier;
+}
 
 char Lexer::advance() {
 	char c = _source[current];
@@ -11,10 +27,11 @@ char Lexer::advance() {
 }
 
 bool is_digit(char c) {
-	if (c >= '0' && c <= '9') {
-		return true;
-	}
-	return false;
+	return (c >= '0' && c <= '9');
+}
+
+bool is_alpha(char c) {
+	return (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '_');
 }
 
 void Lexer::skip_whitespace() {
@@ -62,6 +79,11 @@ Token Lexer::string_literal() {
 	}
 }
 
+Token Lexer::identifier() {
+	while (is_alpha(peek()) || is_digit(peek())) advance();
+	return make_token(identifier_type());
+}
+
 Token Lexer::next_token() {
 	skip_whitespace();
 	start = current;
@@ -69,6 +91,7 @@ Token Lexer::next_token() {
 	char c = advance();
 
 	if (is_digit(c)) return number();
+	if (is_alpha(c)) return identifier();
 	if (c == '"') return string_literal();
 
 	switch (c) {
