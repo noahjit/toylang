@@ -300,3 +300,57 @@ TEST(LexerNumbers, DivisionIsNotAComment) {
         { TokenType::Number, "2" },
         });
 }
+
+TEST(LexerStrings, SimpleString) {
+    expect_tokens("\"hello\"", { { TokenType::String, "\"hello\"" } });
+}
+
+TEST(LexerStrings, EmptyString) {
+    expect_tokens("\"\"", { { TokenType::String, "\"\"" } });
+}
+
+TEST(LexerStrings, SpacesPreservedInside) {
+    expect_tokens("\"a b  c\"", { { TokenType::String, "\"a b  c\"" } });
+}
+
+TEST(LexerStrings, OperatorsAndCommentsInsideAreNotLexed) {
+    expect_tokens("\"+ - // x\"", { { TokenType::String, "\"+ - // x\"" } });
+}
+
+TEST(LexerStrings, StringFollowedByTokens) {
+    expect_tokens("\"a\"+1", {
+        { TokenType::String, "\"a\"" },
+        { TokenType::Plus, "+" },
+        { TokenType::Number, "1" },
+        });
+}
+
+TEST(LexerStrings, TwoStrings) {
+    expect_tokens("\"a\" \"b\"", {
+        { TokenType::String, "\"a\"" },
+        { TokenType::String, "\"b\"" },
+        });
+}
+
+TEST(LexerStrings, UnterminatedString) {
+    expect_tokens("\"abc", { { TokenType::Error, "Unterminated string." } });
+}
+
+TEST(LexerStrings, LoneQuoteIsUnterminated) {
+    expect_tokens("\"", { { TokenType::Error, "Unterminated string." } });
+}
+
+TEST(LexerStrings, MultilineStringKeepsNewline) {
+    expect_tokens("\"a\nb\"", { { TokenType::String, "\"a\nb\"" } });
+}
+
+TEST(LexerStrings, NewlineInsideStringCountsLines) {
+    Lexer lexer("\"a\nb\" +");
+
+    Token s = lexer.next_token();
+    EXPECT_EQ(s._type, TokenType::String);
+
+    Token p = lexer.next_token();
+    EXPECT_EQ(p._type, TokenType::Plus);
+    EXPECT_EQ(p.line_number, 2);
+}

@@ -35,6 +35,7 @@ class Lexer {
 		[[nodiscard]] Token make_token(TokenType type) const;
 		Token error_token(std::string_view message) const;
 		Token number();
+		Token string_literal();
 		void skip_whitespace();
 
 		std::string _source;

@@ -50,6 +50,18 @@ Token Lexer::number() {
 	return make_token(TokenType::Number);
 }
 
+Token Lexer::string_literal() {
+	while (peek() != '"' && !is_at_end()) {
+		if (peek() == '\n') line_number++;
+		advance();
+	}
+	if (is_at_end()) return error_token("Unterminated string.");
+	else {
+		advance();
+		return make_token(TokenType::String);
+	}
+}
+
 Token Lexer::next_token() {
 	skip_whitespace();
 	start = current;
@@ -57,6 +69,7 @@ Token Lexer::next_token() {
 	char c = advance();
 
 	if (is_digit(c)) return number();
+	if (c == '"') return string_literal();
 
 	switch (c) {
 		case '(': return make_token(TokenType::LeftParen);
