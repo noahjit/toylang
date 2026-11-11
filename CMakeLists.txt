@@ -10,7 +10,7 @@ option(TOYLANG_SANITIZE "Build with ASan + UBSan (GCC/Clang)" OFF)
 
 add_library(toylang_lib
     src/lexer.cpp
-)
+ "src/ast.h")
 target_include_directories(toylang_lib PUBLIC src)
 
 if(MSVC)
@@ -25,7 +25,7 @@ if(TOYLANG_SANITIZE AND NOT MSVC)
     target_link_options(toylang_lib PUBLIC -fsanitize=address,undefined)
 endif()
 
-add_executable(toylang src/main.cpp)
+add_executable(toylang src/main.cpp "src/ast.h")
 target_link_libraries(toylang PRIVATE toylang_lib)
 
 enable_testing()

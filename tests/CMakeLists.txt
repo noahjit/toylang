@@ -9,7 +9,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(toylang_tests
     lexer_test.cpp
-)
+ "ast_test.cpp")
 target_link_libraries(toylang_tests PRIVATE toylang_lib GTest::gtest_main)
 
 include(GoogleTest)
