@@ -1,0 +1,51 @@
+#include "parser.h"
+
+Parser::Parser(Lexer& lexer) : lexer(lexer) { advance(); }
+
+Token Parser::advance() {
+	previous = current;
+	current = lexer.next_token();
+	if (current._type == TokenType::Error) throw ParseError(std::string(current.lexeme), current.line_number);
+	return previous;
+}
+
+bool Parser::check(TokenType type) const {
+	return (current._type == type);
+}
+
+bool Parser::match(TokenType type) {
+	if (check(type)) {
+		advance();
+		return true;
+	}
+	return false;
+}
+
+Token Parser::consume(TokenType type, std::string_view message) {
+	if (check(type)) return advance();
+	else throw ParseError(std::string(message), current.line_number);
+}
+
+std::unique_ptr<Expression> Parser::primary() {
+	switch (current._type) {
+	case TokenType::Number:
+	case TokenType::String:
+	case TokenType::True:
+	case TokenType::False:
+
+	case TokenType::Nil: 
+		return std::make_unique<Literal>(advance()); 
+
+	case TokenType::LeftParen: {
+		advance();
+		auto expr = parse_expression();
+		consume(TokenType::RightParen, "Expected ')' after expression.");
+		return expr;
+	}
+	default: throw ParseError(std::string("Expected expression."), current.line_number);
+	}
+}
+
+std::unique_ptr<Expression> Parser::parse_expression() {
+	return primary();
+}
