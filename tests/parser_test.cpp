@@ -111,3 +111,130 @@ TEST(ParserErrors, ErrorLineNumberAfterNewlines) {
 TEST(ParserErrors, MissingParenReportedAtEndOfInput) {
     expect_parse_error("(1\n\n", "')'", 3);
 }
+
+TEST(ParserTest, UnaryMinus) {
+    Lexer lexer("-3");
+    Parser parser(lexer);
+    auto expr = parser.parse_expression();
+
+    auto* unary = dynamic_cast<Unary*>(expr.get());
+    ASSERT_NE(unary, nullptr);
+    EXPECT_EQ(unary->op._type, TokenType::Minus);
+
+    auto* operand = dynamic_cast<Literal*>(unary->operand.get());
+    ASSERT_NE(operand, nullptr);
+    EXPECT_EQ(operand->value._type, TokenType::Number);
+    EXPECT_EQ(operand->value.lexeme, "3");
+}
+
+TEST(ParserTest, UnaryNot) {
+    Lexer lexer("!true");
+    Parser parser(lexer);
+    auto expr = parser.parse_expression();
+
+    auto* unary = dynamic_cast<Unary*>(expr.get());
+    ASSERT_NE(unary, nullptr);
+    EXPECT_EQ(unary->op._type, TokenType::Bang);
+
+    auto* operand = dynamic_cast<Literal*>(unary->operand.get());
+    ASSERT_NE(operand, nullptr);
+    EXPECT_EQ(operand->value._type, TokenType::True);
+}
+
+TEST(ParserTest, ChainedUnaryOperators) {
+    Lexer lexer("--3");
+    Parser parser(lexer);
+    auto expr = parser.parse_expression();
+
+    auto* outer = dynamic_cast<Unary*>(expr.get());
+    ASSERT_NE(outer, nullptr);
+    EXPECT_EQ(outer->op._type, TokenType::Minus);
+
+    auto* inner = dynamic_cast<Unary*>(outer->operand.get());
+    ASSERT_NE(inner, nullptr);
+    EXPECT_EQ(inner->op._type, TokenType::Minus);
+
+    auto* operand = dynamic_cast<Literal*>(inner->operand.get());
+    ASSERT_NE(operand, nullptr);
+    EXPECT_EQ(operand->value.lexeme, "3");
+}
+
+TEST(ParserTest, UnaryMinusGroupedExpression) {
+    Lexer lexer("-(5)");
+    Parser parser(lexer);
+    auto expr = parser.parse_expression();
+
+    auto* unary = dynamic_cast<Unary*>(expr.get());
+    ASSERT_NE(unary, nullptr);
+    EXPECT_EQ(unary->op._type, TokenType::Minus);
+
+    auto* operand = dynamic_cast<Literal*>(unary->operand.get());
+    ASSERT_NE(operand, nullptr);
+    EXPECT_EQ(operand->value.lexeme, "5");
+}
+
+TEST(ParserErrors, UnaryOperatorWithoutOperand) {
+    expect_parse_error("-", "Expected expression", 1);
+}
+
+TEST(ParserTest, Multiplication) {
+    Lexer lexer("1 * 2");
+    Parser parser(lexer);
+    auto expr = parser.parse_expression();
+
+    auto* binary = dynamic_cast<Binary*>(expr.get());
+    ASSERT_NE(binary, nullptr);
+    EXPECT_EQ(binary->op._type, TokenType::Star);
+
+    auto* left = dynamic_cast<Literal*>(binary->left.get());
+    ASSERT_NE(left, nullptr);
+    EXPECT_EQ(left->value.lexeme, "1");
+
+    auto* right = dynamic_cast<Literal*>(binary->right.get());
+    ASSERT_NE(right, nullptr);
+    EXPECT_EQ(right->value.lexeme, "2");
+}
+
+TEST(ParserTest, MultiplicationIsLeftAssociative) {
+    Lexer lexer("1 * 2 * 3");
+    Parser parser(lexer);
+    auto expr = parser.parse_expression();
+
+    auto* outer = dynamic_cast<Binary*>(expr.get());
+    ASSERT_NE(outer, nullptr);
+    EXPECT_EQ(outer->op._type, TokenType::Star);
+
+    auto* inner = dynamic_cast<Binary*>(outer->left.get());
+    ASSERT_NE(inner, nullptr);
+    EXPECT_EQ(inner->op._type, TokenType::Star);
+
+    auto* first = dynamic_cast<Literal*>(inner->left.get());
+    ASSERT_NE(first, nullptr);
+    EXPECT_EQ(first->value.lexeme, "1");
+
+    auto* second = dynamic_cast<Literal*>(inner->right.get());
+    ASSERT_NE(second, nullptr);
+    EXPECT_EQ(second->value.lexeme, "2");
+
+    auto* third = dynamic_cast<Literal*>(outer->right.get());
+    ASSERT_NE(third, nullptr);
+    EXPECT_EQ(third->value.lexeme, "3");
+}
+
+TEST(ParserTest, Division) {
+    Lexer lexer("6 / 2");
+    Parser parser(lexer);
+    auto expr = parser.parse_expression();
+
+    auto* binary = dynamic_cast<Binary*>(expr.get());
+    ASSERT_NE(binary, nullptr);
+    EXPECT_EQ(binary->op._type, TokenType::Slash);
+
+    auto* left = dynamic_cast<Literal*>(binary->left.get());
+    ASSERT_NE(left, nullptr);
+    EXPECT_EQ(left->value.lexeme, "6");
+
+    auto* right = dynamic_cast<Literal*>(binary->right.get());
+    ASSERT_NE(right, nullptr);
+    EXPECT_EQ(right->value.lexeme, "2");
+}

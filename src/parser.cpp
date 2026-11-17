@@ -46,6 +46,27 @@ std::unique_ptr<Expression> Parser::primary() {
 	}
 }
 
-std::unique_ptr<Expression> Parser::parse_expression() {
+std::unique_ptr<Expression> Parser::unary() {
+	if (match(TokenType::Bang) || match(TokenType::Minus)) {
+		Token op = previous;
+		auto operand = unary();
+		return std::make_unique<Unary>(op, std::move(operand));
+	}
 	return primary();
+}
+
+std::unique_ptr<Expression> Parser::parse_expression() {
+	return factor();
+}
+
+std::unique_ptr<Expression> Parser::factor() {
+	std::unique_ptr<Expression> left = unary();
+
+	while (match(TokenType::Star) || match(TokenType::Slash)) {
+		Token op = previous;
+		std::unique_ptr<Expression> right = unary();
+		left = std::make_unique<Binary>(std::move(left), op, std::move(right));
+	}
+	
+	return left;
 }

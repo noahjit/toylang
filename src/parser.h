@@ -22,6 +22,8 @@ private:
 	bool match(TokenType type);
 	Token consume(TokenType type, std::string_view message);
 	std::unique_ptr<Expression> primary();
+	std::unique_ptr<Expression> unary();
+	std::unique_ptr<Expression> factor();
 
 	Lexer& lexer;
 	Token current{ TokenType::EndOfFile, "", 1 };
