@@ -28,6 +28,24 @@ static void expect_parse_error(const std::string& src, const std::string& fragme
     }
 }
 
+static std::string show(const Expression* e) {
+    if (auto* lit = dynamic_cast<const Literal*>(e))
+        return std::string(lit->value.lexeme);
+    if (auto* un = dynamic_cast<const Unary*>(e))
+        return "(" + std::string(un->op.lexeme) + " " + show(un->operand.get()) + ")";
+    if (auto* bin = dynamic_cast<const Binary*>(e))
+        return "(" + std::string(bin->op.lexeme) + " " + show(bin->left.get()) + " "
+        + show(bin->right.get()) + ")";
+    return "?";
+}
+
+static std::string parse_to_string(const std::string& src) {
+    Lexer lexer(src);
+    Parser parser(lexer);
+    auto expr = parser.parse();
+    return show(expr.get());
+}
+
 TEST(ParserTest, Number) {
     expect_literal("3", TokenType::Number, "3");
 }
@@ -238,3 +256,15 @@ TEST(ParserTest, Division) {
     ASSERT_NE(right, nullptr);
     EXPECT_EQ(right->value.lexeme, "2");
 }
+
+TEST(ParserTerm, Simple) { EXPECT_EQ(parse_to_string("1 + 2"), "(+ 1 2)"); }
+TEST(ParserTerm, PrecedenceMulOverAdd) { EXPECT_EQ(parse_to_string("1 + 2 * 3"), "(+ 1 (* 2 3))"); }
+TEST(ParserTerm, PrecedenceMulFirst) { EXPECT_EQ(parse_to_string("1 * 2 + 3"), "(+ (* 1 2) 3)"); }
+TEST(ParserTerm, LeftAssociativeSub) { EXPECT_EQ(parse_to_string("1 - 2 - 3"), "(- (- 1 2) 3)"); }
+TEST(ParserTerm, MixedAddSub) { EXPECT_EQ(parse_to_string("1 - 2 + 3"), "(+ (- 1 2) 3)"); }
+TEST(ParserTerm, GroupingOverrides) { EXPECT_EQ(parse_to_string("(1 + 2) * 3"), "(* (+ 1 2) 3)"); }
+TEST(ParserTerm, UnaryBindsTighter) { EXPECT_EQ(parse_to_string("-1 + 2"), "(+ (- 1) 2)"); }
+TEST(ParserTerm, BinaryThenUnary) { EXPECT_EQ(parse_to_string("1 - -2"), "(- 1 (- 2))"); }
+TEST(ParserTerm, LongChain) { EXPECT_EQ(parse_to_string("1 + 2 * 3 - 4 / 5"), "(- (+ 1 (* 2 3)) (/ 4 5))"); }
+TEST(ParserErrors, DanglingPlus) { expect_parse_error("1 +", "Expected expression", 1); }
+TEST(ParserErrors, LeadingPlus) { expect_parse_error("+ 1", "Expected expression", 1); }

@@ -56,7 +56,13 @@ std::unique_ptr<Expression> Parser::unary() {
 }
 
 std::unique_ptr<Expression> Parser::parse_expression() {
-	return factor();
+	return term();
+}
+
+std::unique_ptr<Expression> Parser::parse() {
+	auto expr = parse_expression();
+	consume(TokenType::EndOfFile, "Expected end of input.");
+	return expr;
 }
 
 std::unique_ptr<Expression> Parser::factor() {
@@ -68,5 +74,17 @@ std::unique_ptr<Expression> Parser::factor() {
 		left = std::make_unique<Binary>(std::move(left), op, std::move(right));
 	}
 	
+	return left;
+}
+
+std::unique_ptr<Expression> Parser::term() {
+	std::unique_ptr<Expression> left = factor();
+
+	while (match(TokenType::Plus) || match(TokenType::Minus)) {
+		Token op = previous;
+		std::unique_ptr<Expression> right = factor();
+		left = std::make_unique<Binary>(std::move(left), op, std::move(right));
+	}
+
 	return left;
 }

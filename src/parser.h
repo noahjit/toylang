@@ -16,6 +16,7 @@ class Parser {
 public:
 	explicit Parser(Lexer& lexer);
 	std::unique_ptr<Expression> parse_expression();
+	std::unique_ptr<Expression> parse();
 private:
 	Token advance();
 	bool check(TokenType type) const;
@@ -24,6 +25,7 @@ private:
 	std::unique_ptr<Expression> primary();
 	std::unique_ptr<Expression> unary();
 	std::unique_ptr<Expression> factor();
+	std::unique_ptr<Expression> term();
 
 	Lexer& lexer;
 	Token current{ TokenType::EndOfFile, "", 1 };
