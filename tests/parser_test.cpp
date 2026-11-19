@@ -36,6 +36,11 @@ static std::string show(const Expression* e) {
     if (auto* bin = dynamic_cast<const Binary*>(e))
         return "(" + std::string(bin->op.lexeme) + " " + show(bin->left.get()) + " "
         + show(bin->right.get()) + ")";
+    if (auto* lg = dynamic_cast<const Logical*>(e))
+        return "(" + std::string(lg->op.lexeme) + " " + show(lg->left.get()) + " "
+        + show(lg->right.get()) + ")";
+    if (auto* var = dynamic_cast<const Variable*>(e))
+        return std::string(var->name.lexeme);
     return "?";
 }
 
@@ -268,3 +273,32 @@ TEST(ParserTerm, BinaryThenUnary) { EXPECT_EQ(parse_to_string("1 - -2"), "(- 1 (
 TEST(ParserTerm, LongChain) { EXPECT_EQ(parse_to_string("1 + 2 * 3 - 4 / 5"), "(- (+ 1 (* 2 3)) (/ 4 5))"); }
 TEST(ParserErrors, DanglingPlus) { expect_parse_error("1 +", "Expected expression", 1); }
 TEST(ParserErrors, LeadingPlus) { expect_parse_error("+ 1", "Expected expression", 1); }
+
+// comparison
+TEST(ParserComparison, Less) { EXPECT_EQ(parse_to_string("1 < 2"), "(< 1 2)"); }
+TEST(ParserComparison, GreaterEqual) { EXPECT_EQ(parse_to_string("1 >= 2"), "(>= 1 2)"); }
+TEST(ParserComparison, LeftAssociative) { EXPECT_EQ(parse_to_string("1 < 2 < 3"), "(< (< 1 2) 3)"); }
+TEST(ParserComparison, TermBindsTighter) { EXPECT_EQ(parse_to_string("1 + 2 < 3 * 4"), "(< (+ 1 2) (* 3 4))"); }
+
+// equality
+TEST(ParserEquality, EqualEqual) { EXPECT_EQ(parse_to_string("1 == 2"), "(== 1 2)"); }
+TEST(ParserEquality, BangEqual) { EXPECT_EQ(parse_to_string("1 != 2"), "(!= 1 2)"); }
+TEST(ParserEquality, LeftAssociative) { EXPECT_EQ(parse_to_string("1 == 2 == 3"), "(== (== 1 2) 3)"); }
+TEST(ParserEquality, ComparisonBindsTighter) { EXPECT_EQ(parse_to_string("1 < 2 == 3 < 4"), "(== (< 1 2) (< 3 4))"); }
+TEST(ParserEquality, BoolOperands) { EXPECT_EQ(parse_to_string("true == !false"), "(== true (! false))"); }
+
+// logical
+TEST(ParserLogic, And) { EXPECT_EQ(parse_to_string("true and false"), "(and true false)"); }
+TEST(ParserLogic, Or) { EXPECT_EQ(parse_to_string("true or false"), "(or true false)"); }
+TEST(ParserLogic, AndBindsTighterThanOr) { EXPECT_EQ(parse_to_string("a or b and c"), "(or a (and b c))"); }
+TEST(ParserLogic, AndFirstThenOr) { EXPECT_EQ(parse_to_string("a and b or c"), "(or (and a b) c)"); }
+TEST(ParserLogic, OrLeftAssociative) { EXPECT_EQ(parse_to_string("a or b or c"), "(or (or a b) c)"); }
+TEST(ParserLogic, GroupingOverrides) { EXPECT_EQ(parse_to_string("(a or b) and c"), "(and (or a b) c)"); }
+TEST(ParserLogic, FullPrecedenceChain) {
+    EXPECT_EQ(parse_to_string("1 + 2 < 3 == true and false or nil"),
+        "(or (and (== (< (+ 1 2) 3) true) false) nil)");
+}
+
+TEST(ParserErrors, DanglingAnd) { expect_parse_error("true and", "Expected expression", 1); }
+TEST(ParserErrors, DanglingOr) { expect_parse_error("or true", "Expected expression", 1); }
+TEST(ParserErrors, DanglingLess) { expect_parse_error("1 <", "Expected expression", 1); }

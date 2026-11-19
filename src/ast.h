@@ -26,3 +26,15 @@ struct Unary : Expression {
 	Token op;
 	std::unique_ptr<Expression> operand;
 };
+
+struct Logical : Expression {
+	Logical(std::unique_ptr<Expression> left, Token op, std::unique_ptr<Expression> right) : left(std::move(left)), op(op), right(std::move(right)) {}
+	std::unique_ptr<Expression> left;
+	Token op;
+	std::unique_ptr<Expression> right;
+};
+
+struct Variable : Expression {
+	explicit Variable(Token name) : name(name) {} // explicit to say dont do any implicit type conversions
+	Token name;
+};

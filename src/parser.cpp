@@ -42,6 +42,9 @@ std::unique_ptr<Expression> Parser::primary() {
 		consume(TokenType::RightParen, "Expected ')' after expression.");
 		return expr;
 	}
+	case TokenType::Identifier: {
+		return std::make_unique<Variable>(advance());
+	}
 	default: throw ParseError(std::string("Expected expression."), current.line_number);
 	}
 }
@@ -56,7 +59,7 @@ std::unique_ptr<Expression> Parser::unary() {
 }
 
 std::unique_ptr<Expression> Parser::parse_expression() {
-	return term();
+	return logic_or();
 }
 
 std::unique_ptr<Expression> Parser::parse() {
@@ -84,6 +87,54 @@ std::unique_ptr<Expression> Parser::term() {
 		Token op = previous;
 		std::unique_ptr<Expression> right = factor();
 		left = std::make_unique<Binary>(std::move(left), op, std::move(right));
+	}
+
+	return left;
+}
+
+std::unique_ptr<Expression> Parser::comparison() {
+	std::unique_ptr<Expression> left = term();
+
+	while (match(TokenType::Less) || match(TokenType::Greater) || match(TokenType::LessEqual) || match(TokenType::GreaterEqual)) {
+		Token op = previous;
+		std::unique_ptr<Expression> right = term();
+		left = std::make_unique<Binary>(std::move(left), op, std::move(right));
+	}
+
+	return left;
+}
+
+std::unique_ptr<Expression> Parser::equality() {
+	std::unique_ptr<Expression> left = comparison();
+
+	while (match(TokenType::EqualEqual) || match(TokenType::BangEqual)) {
+		Token op = previous;
+		std::unique_ptr<Expression> right = comparison();
+		left = std::make_unique<Binary>(std::move(left), op, std::move(right));
+	}
+
+	return left;
+}
+
+std::unique_ptr<Expression> Parser::logic_and() {
+	std::unique_ptr<Expression> left = equality();
+
+	while (match(TokenType::And)) {
+		Token op = previous;
+		std::unique_ptr<Expression> right = equality();
+		left = std::make_unique<Logical>(std::move(left), op, std::move(right));
+	}
+
+	return left;
+}
+
+std::unique_ptr<Expression> Parser::logic_or() {
+	std::unique_ptr<Expression> left = logic_and();
+
+	while (match(TokenType::Or)) {
+		Token op = previous;
+		std::unique_ptr<Expression> right = logic_and();
+		left = std::make_unique<Logical>(std::move(left), op, std::move(right));
 	}
 
 	return left;

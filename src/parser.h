@@ -27,6 +27,11 @@ private:
 	std::unique_ptr<Expression> factor();
 	std::unique_ptr<Expression> term();
 
+	std::unique_ptr<Expression> comparison();
+	std::unique_ptr<Expression> equality();
+	std::unique_ptr<Expression> logic_and();
+	std::unique_ptr<Expression> logic_or();
+
 	Lexer& lexer;
 	Token current{ TokenType::EndOfFile, "", 1 };
 	Token previous{ TokenType::EndOfFile, "", 1 };
